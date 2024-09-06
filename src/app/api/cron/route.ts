@@ -17,7 +17,7 @@ export default class ExpoPushNotificationProvider {
   private expo: Expo;
 
   constructor() {
-    this.expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
+    this.expo = new Expo({ accessToken: process.env.API_ACCESS_TOKEN });
   }
 
   async sendNotification(allMessages: IPushMessage[]): Promise<void> {
@@ -111,9 +111,9 @@ export default class ExpoPushNotificationProvider {
     })();
   }
 }
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
+const supabaseUrl = process.env.API_SUPABASE_URL;
+const supabaseAnonKey = process.env.API_SUPABASE_ANON_KEY;
+console.log(supabaseUrl);
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
@@ -133,24 +133,21 @@ export async function GET(request) {
   const { data, error } = await supabase
     .from('users')
     .select('id, expo_token')
-    .eq('expo_token', null)
-    .not('expo_token', 'is', null) // Apenas usuários com expoToken preenchido
-    .not(
-      'id',
-      'in',
-      supabase.from('tasks').select('user_id').eq('due_date', today)
-    );
-  const msgs = data?.map((res) => {
-    return {
-      body: 'Crie suas tarefas!',
-      data: { teste: true },
-      title: 'Nenhuma tarefa criada hoje.',
-      to: res.expo_token,
-      sound: 'default',
-    };
-  });
-  new ExpoPushNotificationProvider().sendNotification(msgs);
-
+    .not('expo_token', 'is', null); // Apenas usuários com expo_token preenchido
+  // .not('id', 'in', supabase.from('tasks').select('user_id'));
+  console.log(data);
+  if (data?.length > 0) {
+    const msgs = data?.map((res) => {
+      return {
+        body: 'Crie suas tarefas!',
+        data: { teste: true },
+        title: 'Nenhuma tarefa criada hoje.',
+        to: res.expo_token,
+        sound: 'default',
+      };
+    });
+    new ExpoPushNotificationProvider().sendNotification(msgs);
+  }
   // Resposta JSON
   return new Response(
     JSON.stringify({ message: 'Tarefa executada com sucesso!' }),
