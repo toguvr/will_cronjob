@@ -1,28 +1,24 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-continue */
 /* eslint-disable guard-for-in */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
 import { createClient } from '@supabase/supabase-js';
-import { Expo, ExpoPushTicket } from 'expo-server-sdk';
-
-export type IPushMessage = {
-  to: string;
-  title: string;
-  body: string;
-  sound?: 'default';
-  data: any;
-};
+import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 
 export async function GET() {
   class ExpoPushNotificationProvider {
     private expo: Expo;
 
     constructor() {
-      this.expo = new Expo({ accessToken: process.env.API_ACCESS_TOKEN });
+      this.expo = new Expo({
+        accessToken: process.env.API_ACCESS_TOKEN,
+        useFcmV1: true,
+      });
     }
 
-    async sendNotification(allMessages: IPushMessage[]): Promise<void> {
-      const messages = [] as IPushMessage[];
+    async sendNotification(allMessages: ExpoPushMessage[]): Promise<void> {
+      const messages = [] as ExpoPushMessage[];
       for (const message of allMessages) {
         // Each push token looks like ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]
 
@@ -45,8 +41,7 @@ export async function GET() {
       }
 
       const chunks = this.expo.chunkPushNotifications(messages);
-
-      const tickets: ExpoPushTicket[] = [];
+      const tickets = [];
       (async () => {
         // Send the chunks to the Expo push notification service. There are
         // different strategies you could use. A simple one is to send one chunk at a
@@ -70,18 +65,14 @@ export async function GET() {
 
       const receiptIds = [];
       for (const ticket of tickets) {
-        // NOTE: Not all tickets have IDs; for example, tickets for notifications
-        // that could not be enqueued will have error information and no receipt ID.
-        if (ticket?.id) {
-          receiptIds.push(ticket?.id);
+        if (ticket.status === 'ok') {
+          receiptIds.push(ticket.id);
         }
       }
 
       const receiptIdChunks =
         this.expo.chunkPushNotificationReceiptIds(receiptIds);
       (async () => {
-        // Like sending notifications, there are different strategies you could use
-        // to retrieve batches of receipts from the Expo service.
         for (const chunk of receiptIdChunks) {
           try {
             const receipts = await this.expo.getPushNotificationReceiptsAsync(
@@ -89,15 +80,13 @@ export async function GET() {
             );
             console.log(receipts);
 
-            // The receipts specify whether Apple or Google successfully received the
-            // notification and information about an error, if one occurred.
             for (const receiptId in receipts) {
-              const { status, message, details } = receipts[receiptId];
+              const { status, details } = receipts[receiptId];
               if (status === 'ok') {
                 continue;
               } else if (status === 'error') {
                 console.error(
-                  `There was an error sending a notification: ${message}`
+                  `There was an error sending a notification: ${details.toString()}`
                 );
                 if (details && details.error) {
                   // The error codes are listed in the Expo documentation:
@@ -122,14 +111,14 @@ export async function GET() {
       persistSession: false,
     },
   });
-  const formatDateUtz = (date: Date) => {
-    const offsetDate = new Date(
-      date.getTime() - date.getTimezoneOffset() * 60000
-    );
+  // const formatDateUtz = (date: Date) => {
+  //   const offsetDate = new Date(
+  //     date.getTime() - date.getTimezoneOffset() * 60000
+  //   );
 
-    const formattedDate = offsetDate.toISOString().split('T')[0];
-    return formattedDate;
-  };
+  //   const formattedDate = offsetDate.toISOString().split('T')[0];
+  //   return formattedDate;
+  // };
   // const today = formatDateUtz(new Date());
   const { data } = await supabase
     .from('users')
@@ -144,7 +133,6 @@ export async function GET() {
         data: { teste: true },
         title: 'Nenhuma tarefa criada hoje.',
         to: res.expo_token,
-        sound: 'default',
       };
     });
     new ExpoPushNotificationProvider().sendNotification(msgs);
