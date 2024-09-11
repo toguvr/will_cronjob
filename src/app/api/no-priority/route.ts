@@ -28,20 +28,21 @@ export async function GET() {
     return !tasks.some((task) => task.user_id === user.id);
   });
 
-  if (usersWithoutTasks?.length > 0) {
-    const msgs = usersWithoutTasks?.map((user) => {
-      return {
-        body: 'Selecione uma prioridade!',
-        data: { teste: true },
-        title: 'Nenhuma tarefa selecionada como prioridade hoje.',
-        to: user.expo_token,
-      };
-    });
-    new ExpoPushNotificationProvider().sendNotification(msgs);
-  }
+  const msgs = usersWithoutTasks?.map((user) => {
+    return {
+      body: 'Selecione uma prioridade!',
+      data: { teste: true },
+      title: 'Nenhuma tarefa selecionada como prioridade hoje.',
+      to: user.expo_token,
+    };
+  });
+  new ExpoPushNotificationProvider().sendNotification(msgs);
   // Resposta JSON
   return new Response(
-    JSON.stringify({ message: 'Tarefa executada com sucesso!' }),
+    JSON.stringify({
+      message: 'Tarefa executada com sucesso!',
+      msgs,
+    }),
     {
       status: 200,
       headers: {

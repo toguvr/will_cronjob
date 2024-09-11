@@ -26,21 +26,18 @@ export async function GET() {
   const usersWithoutTasks = users.filter((user) => {
     return !tasks.some((task) => task.user_id === user.id);
   });
-  console.log(usersWithoutTasks);
-  if (usersWithoutTasks?.length > 0) {
-    const msgs = usersWithoutTasks?.map((user) => {
-      return {
-        body: 'Crie suas tarefas!',
-        data: { teste: true },
-        title: 'Nenhuma tarefa criada hoje.',
-        to: user.expo_token,
-      };
-    });
-    new ExpoPushNotificationProvider().sendNotification(msgs);
-  }
+  const msgs = usersWithoutTasks?.map((user) => {
+    return {
+      body: 'Crie suas tarefas!',
+      data: { teste: true },
+      title: 'Nenhuma tarefa criada hoje.',
+      to: user.expo_token,
+    };
+  });
+  new ExpoPushNotificationProvider().sendNotification(msgs);
   // Resposta JSON
   return new Response(
-    JSON.stringify({ message: 'Tarefa executada com sucesso!' }),
+    JSON.stringify({ message: 'Tarefa executada com sucesso!', msgs }),
     {
       status: 200,
       headers: {
