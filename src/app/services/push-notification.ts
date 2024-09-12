@@ -1,4 +1,33 @@
+import axios from 'axios';
 import Expo, { ExpoPushMessage } from 'expo-server-sdk';
+
+export async function sendNotification(
+  messages: ExpoPushMessage[]
+): Promise<void> {
+  // Envia as notificações em lotes de até 100 mensagens por vez
+  const chunks = [];
+  const chunkSize = 100;
+  for (let i = 0; i < messages.length; i += chunkSize) {
+    chunks.push(messages.slice(i, i + chunkSize));
+  }
+
+  // Envia cada chunk de mensagens para o endpoint do Expo
+  const tickets = [];
+  for (const chunk of chunks) {
+    const response = await axios.post(
+      'https://exp.host/--/api/v2/push/send',
+      chunk,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${process.env.API_ACCESS_TOKEN}`, // Se necessário
+        },
+      }
+    );
+    tickets.push(...response.data.data);
+  }
+}
 
 export class ExpoPushNotificationProvider {
   private expo: Expo;

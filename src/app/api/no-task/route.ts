@@ -1,4 +1,4 @@
-import { ExpoPushNotificationProvider } from '@/app/services/push-notification';
+import { sendNotification } from '@/app/services/push-notification';
 import { supabase } from '@/app/services/supabase';
 import { localToUtc } from '@/app/utils/date';
 
@@ -34,7 +34,7 @@ export async function GET() {
       to: user.expo_token,
     };
   });
-  new ExpoPushNotificationProvider().sendNotification(msgs);
+  await sendNotification(msgs);
   // Resposta JSON
   return new Response(
     JSON.stringify({ message: 'Tarefa executada com sucesso!', msgs }),
